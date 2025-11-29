@@ -117,6 +117,39 @@ class JwtTokenProviderTest {
         assertFalse(jwtTokenProvider.validateToken(tokenWithWrongSignature));
     }
 
+    @Test
+    void constructor_withValidParams_createsProvider() {
+        // Given/When
+        JwtTokenProvider provider = new JwtTokenProvider(SECRET, EXPIRATION);
+
+        // Then
+        assertNotNull(provider);
+    }
+
+    @Test
+    void extractUsername_withValidToken_returnsSubject() {
+        // Given
+        String token = createTestToken();
+
+        // When
+        String username = jwtTokenProvider.extractUsername(token);
+
+        // Then
+        assertEquals("testuser", username);
+    }
+
+    @Test
+    void extractClaim_withCustomClaim_returnsValue() {
+        // Given
+        String token = createTestToken();
+
+        // When
+        Object roles = jwtTokenProvider.extractClaim(token, claims -> claims.get("roles"));
+
+        // Then
+        assertNotNull(roles);
+    }
+
     private String createTestToken() {
         return Jwts.builder()
                 .subject("testuser")
