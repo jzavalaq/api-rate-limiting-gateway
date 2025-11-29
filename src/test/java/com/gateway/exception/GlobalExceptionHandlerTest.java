@@ -2,9 +2,10 @@ package com.gateway.exception;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import reactor.test.StepVerifier;
 
@@ -39,6 +40,37 @@ class GlobalExceptionHandlerTest {
                     assertNotNull(response.getBody());
                     assertEquals(400, response.getBody().status());
                     assertTrue(response.getBody().error().contains("Request validation failed"));
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void handleValidationException_withFieldErrors_returnsDetailsInResponse() {
+        // Given
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/users").build();
+        MockServerWebExchange exchange = MockServerWebExchange.builder(request).build();
+
+        // Create mock with field errors
+        WebExchangeBindException ex = mock(WebExchangeBindException.class);
+        BindException bindResult = new BindException(new Object(), "target");
+        bindResult.addError(new FieldError("target", "email", "must be a valid email"));
+        bindResult.addError(new FieldError("target", "name", "must not be blank"));
+
+        when(ex.getBindingResult()).thenReturn(bindResult);
+        when(ex.getFieldErrors()).thenReturn(bindResult.getFieldErrors());
+
+        // When
+        var result = handler.handleValidationException(ex, exchange);
+
+        // Then
+        StepVerifier.create(result)
+                .assertNext(response -> {
+                    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+                    assertNotNull(response.getBody());
+                    assertEquals(400, response.getBody().status());
+                    assertTrue(response.getBody().error().contains("Request validation failed"));
+                    assertTrue(response.getBody().error().contains("email"));
+                    assertTrue(response.getBody().error().contains("name"));
                 })
                 .verifyComplete();
     }

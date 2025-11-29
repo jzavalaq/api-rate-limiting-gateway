@@ -1,5 +1,6 @@
 package com.gateway.ratelimit;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -36,6 +37,19 @@ class RateLimitFilterTest {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         rateLimitFilter = new RateLimitFilter(rateLimitService, objectMapper);
+    }
+
+    @Test
+    void constructor_withValidParams_createsFilter() {
+        // Given
+        RateLimitService service = mock(RateLimitService.class);
+        ObjectMapper mapper = new ObjectMapper();
+
+        // When
+        RateLimitFilter filter = new RateLimitFilter(service, mapper);
+
+        // Then
+        assertNotNull(filter);
     }
 
     @Test
