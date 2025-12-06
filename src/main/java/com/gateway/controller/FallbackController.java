@@ -1,5 +1,6 @@
 package com.gateway.controller;
 
+import com.gateway.config.GatewayConstants;
 import com.gateway.dto.ApiResponse;
 import com.gateway.util.CorrelationIdUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +47,8 @@ public class FallbackController {
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ApiResponse.error(
                         "User service is currently unavailable. Please try again later.",
-                        Map.of("service", "user-service", "retryAfter", "60"),
+                        Map.of("service", "user-service", "retryAfter",
+                                String.valueOf(GatewayConstants.DEFAULT_RETRY_AFTER_SECONDS)),
                         correlationId)));
     }
 
@@ -70,7 +72,8 @@ public class FallbackController {
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ApiResponse.error(
                         "Order service is currently unavailable. Please try again later.",
-                        Map.of("service", "order-service", "retryAfter", "60"),
+                        Map.of("service", "order-service", "retryAfter",
+                                String.valueOf(GatewayConstants.DEFAULT_RETRY_AFTER_SECONDS)),
                         correlationId)));
     }
 
@@ -94,7 +97,8 @@ public class FallbackController {
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ApiResponse.error(
                         "Product service is currently unavailable. Please try again later.",
-                        Map.of("service", "product-service", "retryAfter", "60"),
+                        Map.of("service", "product-service", "retryAfter",
+                                String.valueOf(GatewayConstants.DEFAULT_RETRY_AFTER_SECONDS)),
                         correlationId)));
     }
 }
