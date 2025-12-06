@@ -1,5 +1,6 @@
 package com.gateway.security;
 
+import com.gateway.config.GatewayConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -27,7 +28,6 @@ import java.util.List;
 public class JwtAuthenticationFilter implements WebFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
-    private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -51,11 +51,11 @@ public class JwtAuthenticationFilter implements WebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
-        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+        if (authHeader == null || !authHeader.startsWith(GatewayConstants.BEARER_PREFIX)) {
             return chain.filter(exchange);
         }
 
-        String token = authHeader.substring(BEARER_PREFIX.length());
+        String token = authHeader.substring(GatewayConstants.BEARER_PREFIX.length());
 
         if (!jwtTokenProvider.validateToken(token)) {
             log.warn("Invalid JWT token received");

@@ -1,5 +1,6 @@
 package com.gateway.ratelimit;
 
+import com.gateway.config.GatewayConstants;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
@@ -106,11 +107,10 @@ public class RateLimitService {
      * Get the time until the rate limit resets (in seconds).
      *
      * @param clientId the client identifier
-     * @return seconds until reset (default 60 seconds)
+     * @return seconds until reset
      */
     public long getResetTimeSeconds(String clientId) {
-        // Return 60 seconds as default reset window
-        return 60;
+        return GatewayConstants.DEFAULT_RETRY_AFTER_SECONDS;
     }
 
     /**

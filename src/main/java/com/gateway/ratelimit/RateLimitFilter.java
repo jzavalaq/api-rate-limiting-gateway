@@ -2,11 +2,12 @@ package com.gateway.ratelimit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gateway.config.GatewayConstants;
 import com.gateway.dto.ErrorResponse;
+import com.gateway.util.ClientIpResolver;
 import com.gateway.util.CorrelationIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -29,12 +30,6 @@ import reactor.core.publisher.Mono;
 public class RateLimitFilter implements WebFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
-
-    private static final String X_RATELIMIT_LIMIT = "X-RateLimit-Limit";
-    private static final String X_RATELIMIT_REMAINING = "X-RateLimit-Remaining";
-    private static final String X_RATELIMIT_RESET = "X-RateLimit-Reset";
-    private static final String X_CORRELATION_ID = "X-Correlation-ID";
-    private static final String RETRY_AFTER = "Retry-After";
 
     private final RateLimitService rateLimitService;
     private final ObjectMapper objectMapper;
@@ -59,17 +54,17 @@ public class RateLimitFilter implements WebFilter {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        String clientId = getClientId(exchange);
-        String correlationId = getOrCreateCorrelationId(exchange);
+        String clientId = ClientIpResolver.resolveClientIp(exchange);
+        String correlationId = CorrelationIdUtils.getOrCreateCorrelationId(exchange);
 
         // Add rate limit headers to response
-        exchange.getResponse().getHeaders().add(X_RATELIMIT_LIMIT,
+        exchange.getResponse().getHeaders().add(GatewayConstants.X_RATELIMIT_LIMIT,
                 String.valueOf(rateLimitService.getRequestsPerMinute()));
-        exchange.getResponse().getHeaders().add(X_RATELIMIT_REMAINING,
+        exchange.getResponse().getHeaders().add(GatewayConstants.X_RATELIMIT_REMAINING,
                 String.valueOf(rateLimitService.getRemainingTokens(clientId)));
-        exchange.getResponse().getHeaders().add(X_RATELIMIT_RESET,
+        exchange.getResponse().getHeaders().add(GatewayConstants.X_RATELIMIT_RESET,
                 String.valueOf(rateLimitService.getResetTimeSeconds(clientId)));
-        exchange.getResponse().getHeaders().add(X_CORRELATION_ID, correlationId);
+        exchange.getResponse().getHeaders().add(GatewayConstants.X_CORRELATION_ID, correlationId);
 
         // Check rate limit
         if (!rateLimitService.tryConsume(clientId)) {
@@ -78,41 +73,6 @@ public class RateLimitFilter implements WebFilter {
         }
 
         return chain.filter(exchange);
-    }
-
-    /**
-     * Extract client identifier from request.
-     *
-     * <p>Uses X-Forwarded-For header if available, otherwise X-Real-IP,
-     * falling back to remote address.</p>
-     *
-     * @param exchange the server web exchange
-     * @return the client identifier (IP address)
-     */
-    private String getClientId(ServerWebExchange exchange) {
-        String forwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isEmpty()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-
-        String xRealIp = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-
-        return exchange.getRequest().getRemoteAddress() != null
-                ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                : "unknown";
-    }
-
-    /**
-     * Get existing correlation ID or create a new one.
-     *
-     * @param exchange the server web exchange
-     * @return the correlation ID
-     */
-    private String getOrCreateCorrelationId(ServerWebExchange exchange) {
-        return CorrelationIdUtils.getOrCreateCorrelationId(exchange);
     }
 
     /**
@@ -125,7 +85,8 @@ public class RateLimitFilter implements WebFilter {
     private Mono<Void> handleRateLimited(ServerWebExchange exchange, String correlationId) {
         exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        exchange.getResponse().getHeaders().add(RETRY_AFTER, "60");
+        exchange.getResponse().getHeaders().add(GatewayConstants.RETRY_AFTER,
+                String.valueOf(GatewayConstants.DEFAULT_RETRY_AFTER_SECONDS));
 
         ErrorResponse errorResponse = ErrorResponse.of(
                 HttpStatus.TOO_MANY_REQUESTS.value(),
