@@ -1,0 +1,184 @@
+{
+  "info": {
+    "name": "api-rate-limiting-gateway",
+    "description": "API Gateway with rate limiting, JWT authentication, and circuit breaker",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Gateway",
+      "item": [
+        {
+          "name": "Get Gateway Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1"]
+            },
+            "description": "Returns basic information about the API Gateway"
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Returns health status of the gateway"
+          }
+        },
+        {
+          "name": "Actuator Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Spring Actuator health endpoint"
+          }
+        },
+        {
+          "name": "OpenAPI Docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v3/api-docs",
+              "host": ["{{base_url}}"],
+              "path": ["v3", "api-docs"]
+            },
+            "description": "OpenAPI JSON specification"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fallback",
+      "item": [
+        {
+          "name": "Users Fallback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fallback/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fallback", "users"]
+            },
+            "description": "Fallback response when user service is unavailable"
+          }
+        },
+        {
+          "name": "Orders Fallback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fallback/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fallback", "orders"]
+            },
+            "description": "Fallback response when order service is unavailable"
+          }
+        },
+        {
+          "name": "Products Fallback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fallback/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fallback", "products"]
+            },
+            "description": "Fallback response when product service is unavailable"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected Routes",
+      "item": [
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Proxy to user service (requires JWT)"
+          }
+        },
+        {
+          "name": "Get Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "orders"]
+            },
+            "description": "Proxy to order service (requires JWT)"
+          }
+        },
+        {
+          "name": "Get Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products"]
+            },
+            "description": "Proxy to product service (requires JWT)"
+          }
+        }
+      ]
+    }
+  ]
+}

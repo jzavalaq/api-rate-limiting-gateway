@@ -8,7 +8,10 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Gateway routing configuration.
- * Defines routes to backend services with circuit breaker support.
+ *
+ * <p>Defines routes to backend services with circuit breaker support.
+ * Each route is configured with a fallback URI for graceful degradation
+ * when backend services are unavailable.</p>
  */
 @Configuration
 public class RouteConfig {
@@ -17,6 +20,13 @@ public class RouteConfig {
     private final String orderServiceUrl;
     private final String productServiceUrl;
 
+    /**
+     * Constructs a new RouteConfig with backend service URLs.
+     *
+     * @param userServiceUrl the user service URL
+     * @param orderServiceUrl the order service URL
+     * @param productServiceUrl the product service URL
+     */
     public RouteConfig(
             @Value("${services.user.url:http://localhost:8081}") String userServiceUrl,
             @Value("${services.order.url:http://localhost:8082}") String orderServiceUrl,
@@ -26,6 +36,12 @@ public class RouteConfig {
         this.productServiceUrl = productServiceUrl;
     }
 
+    /**
+     * Configure the custom route locator for the gateway.
+     *
+     * @param builder the route locator builder
+     * @return the configured route locator
+     */
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
@@ -35,7 +51,7 @@ public class RouteConfig {
                         .filters(f -> f
                                 .circuitBreaker(c -> c
                                         .setName("userServiceCircuitBreaker")
-                                        .setFallbackUri("forward:/fallback/users"))
+                                        .setFallbackUri("forward:/api/v1/fallback/users"))
                                 .stripPrefix(3)
                                 .addRequestHeader("X-Gateway", "api-rate-limiting-gateway"))
                         .uri(userServiceUrl))
@@ -46,7 +62,7 @@ public class RouteConfig {
                         .filters(f -> f
                                 .circuitBreaker(c -> c
                                         .setName("orderServiceCircuitBreaker")
-                                        .setFallbackUri("forward:/fallback/orders"))
+                                        .setFallbackUri("forward:/api/v1/fallback/orders"))
                                 .stripPrefix(3)
                                 .addRequestHeader("X-Gateway", "api-rate-limiting-gateway"))
                         .uri(orderServiceUrl))
@@ -57,7 +73,7 @@ public class RouteConfig {
                         .filters(f -> f
                                 .circuitBreaker(c -> c
                                         .setName("productServiceCircuitBreaker")
-                                        .setFallbackUri("forward:/fallback/products"))
+                                        .setFallbackUri("forward:/api/v1/fallback/products"))
                                 .stripPrefix(3)
                                 .addRequestHeader("X-Gateway", "api-rate-limiting-gateway"))
                         .uri(productServiceUrl))

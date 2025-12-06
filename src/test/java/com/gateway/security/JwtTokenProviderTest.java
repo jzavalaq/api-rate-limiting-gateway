@@ -1,8 +1,13 @@
 package com.gateway.security;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -48,17 +53,96 @@ class JwtTokenProviderTest {
         String token = createTestToken();
         String username = jwtTokenProvider.extractUsername(token);
         assertNotNull(username);
+        assertEquals("testuser", username);
+    }
+
+    @Test
+    void extractRoles_WithValidToken_ReturnsRoles() {
+        String token = createTestToken();
+        List<String> roles = jwtTokenProvider.extractRoles(token);
+        assertNotNull(roles);
+        assertEquals(1, roles.size());
+        assertEquals("USER", roles.get(0));
+    }
+
+    @Test
+    void extractRoles_WithTokenWithoutRoles_ReturnsNull() {
+        String token = createTestTokenWithoutRoles();
+        List<String> roles = jwtTokenProvider.extractRoles(token);
+        assertNull(roles);
+    }
+
+    @Test
+    void extractExpiration_WithValidToken_ReturnsExpiration() {
+        String token = createTestToken();
+        Date expiration = jwtTokenProvider.extractExpiration(token);
+        assertNotNull(expiration);
+        assertTrue(expiration.after(new Date()));
+    }
+
+    @Test
+    void isTokenExpired_WithValidToken_ReturnsFalse() {
+        String token = createTestToken();
+        assertFalse(jwtTokenProvider.isTokenExpired(token));
+    }
+
+    @Test
+    void isTokenExpired_WithExpiredToken_ReturnsTrue() {
+        String token = createExpiredTestToken();
+        assertTrue(jwtTokenProvider.isTokenExpired(token));
+    }
+
+    @Test
+    void extractClaim_WithValidToken_ExtractsClaim() {
+        String token = createTestToken();
+        String subject = jwtTokenProvider.extractClaim(token, claims -> claims.getSubject());
+        assertEquals("testuser", subject);
+    }
+
+    @Test
+    void validateToken_WithExpiredToken_ReturnsFalse() {
+        String expiredToken = createExpiredTestToken();
+        assertFalse(jwtTokenProvider.validateToken(expiredToken));
+    }
+
+    @Test
+    void validateToken_WithWrongSignature_ReturnsFalse() {
+        String tokenWithWrongSignature = Jwts.builder()
+                .subject("testuser")
+                .claim("roles", List.of("USER"))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .signWith(Keys.hmacShaKeyFor("different-secret-key-for-testing-with-256-bits-min".getBytes(StandardCharsets.UTF_8)))
+                .compact();
+        assertFalse(jwtTokenProvider.validateToken(tokenWithWrongSignature));
     }
 
     private String createTestToken() {
-        // Create a simple test token using the provider
-        // For testing purposes, we'll create a minimal valid JWT
-        return io.jsonwebtoken.Jwts.builder()
+        return Jwts.builder()
                 .subject("testuser")
-                .claim("roles", java.util.List.of("USER"))
-                .issuedAt(new java.util.Date())
-                .expiration(new java.util.Date(System.currentTimeMillis() + EXPIRATION))
-                .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(SECRET.getBytes()))
+                .claim("roles", List.of("USER"))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+    }
+
+    private String createTestTokenWithoutRoles() {
+        return Jwts.builder()
+                .subject("testuser")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+    }
+
+    private String createExpiredTestToken() {
+        return Jwts.builder()
+                .subject("testuser")
+                .claim("roles", List.of("USER"))
+                .issuedAt(new Date(System.currentTimeMillis() - 20000))
+                .expiration(new Date(System.currentTimeMillis() - 10000))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
                 .compact();
     }
 }

@@ -18,6 +18,9 @@ import java.util.List;
 
 /**
  * Security configuration for the API Gateway.
+ *
+ * <p>Configures JWT-based authentication, CORS, CSRF protection, and
+ * path-based authorization rules.</p>
  */
 @Configuration
 @EnableWebFluxSecurity
@@ -25,10 +28,22 @@ public class SecurityConfig {
 
     private final String[] allowedOrigins;
 
+    /**
+     * Constructs a new SecurityConfig with allowed CORS origins.
+     *
+     * @param allowedOrigins comma-separated list of allowed origins
+     */
     public SecurityConfig(@Value("${allowed.origins}") String allowedOrigins) {
         this.allowedOrigins = allowedOrigins.split(",");
     }
 
+    /**
+     * Configure the security filter chain.
+     *
+     * @param http the server HTTP security
+     * @param jwtAuthenticationFilter the JWT authentication filter
+     * @return the configured security web filter chain
+     */
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(
             ServerHttpSecurity http,
@@ -39,14 +54,25 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
                         .frameOptions(ServerHttpSecurity.HeaderSpec.FrameOptionsSpec::disable)
-                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'"))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                "script-src 'self'; " +
+                                "style-src 'self' 'unsafe-inline'; " +
+                                "img-src 'self' data:; " +
+                                "font-src 'self'; " +
+                                "frame-ancestors 'none'; " +
+                                "form-action 'self'"))
+                        .hsts(hsts -> hsts
+                                .includeSubdomains(true)
+                                .maxAge(java.time.Duration.ofDays(365)))
                 )
                 .authorizeExchange(exchanges -> exchanges
                         // Public endpoints
                         .pathMatchers("/actuator/health").permitAll()
                         .pathMatchers("/actuator/info").permitAll()
                         .pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .pathMatchers("/h2-console/**").permitAll()
+                        // H2 console should be denied in all environments for security
+                        .pathMatchers("/h2-console/**").denyAll()
                         .pathMatchers("/health").permitAll()
                         .pathMatchers("/").permitAll()
                         .pathMatchers("/fallback/**").permitAll()
@@ -58,6 +84,11 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * Configure CORS settings.
+     *
+     * @return the CORS configuration source
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

@@ -20,6 +20,9 @@ import java.util.function.Function;
 
 /**
  * JWT token provider for generating and validating JWT tokens.
+ *
+ * <p>This component handles JWT token parsing, validation, and claim extraction.
+ * It uses HMAC-SHA signing with a configurable secret key.</p>
  */
 @Component
 public class JwtTokenProvider {
@@ -29,6 +32,12 @@ public class JwtTokenProvider {
     private final SecretKey secretKey;
     private final long expiration;
 
+    /**
+     * Constructs a new JwtTokenProvider with the specified secret and expiration.
+     *
+     * @param secret the JWT signing secret (must be at least 256 bits for HS256)
+     * @param expiration the token expiration time in milliseconds
+     */
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expiration) {
@@ -37,7 +46,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Extract username from token.
+     * Extract username (subject) from token.
+     *
+     * @param token the JWT token
+     * @return the username from the token subject
      */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -45,6 +57,9 @@ public class JwtTokenProvider {
 
     /**
      * Extract roles from token.
+     *
+     * @param token the JWT token
+     * @return list of role names from the token
      */
     @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {
@@ -53,6 +68,9 @@ public class JwtTokenProvider {
 
     /**
      * Extract expiration date from token.
+     *
+     * @param token the JWT token
+     * @return the expiration date
      */
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
@@ -60,6 +78,11 @@ public class JwtTokenProvider {
 
     /**
      * Extract a specific claim from token.
+     *
+     * @param token the JWT token
+     * @param claimsResolver function to extract the claim
+     * @param <T> the type of the claim
+     * @return the claim value
      */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
@@ -68,6 +91,9 @@ public class JwtTokenProvider {
 
     /**
      * Extract all claims from token.
+     *
+     * @param token the JWT token
+     * @return all claims from the token
      */
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
@@ -79,6 +105,9 @@ public class JwtTokenProvider {
 
     /**
      * Check if token is expired.
+     *
+     * @param token the JWT token
+     * @return true if the token is expired, false otherwise
      */
     public boolean isTokenExpired(String token) {
         try {
@@ -89,7 +118,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Validate token.
+     * Validate token signature and structure.
+     *
+     * @param token the JWT token to validate
+     * @return true if the token is valid, false otherwise
      */
     public boolean validateToken(String token) {
         try {

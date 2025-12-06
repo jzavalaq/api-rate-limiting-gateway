@@ -13,6 +13,9 @@ import java.time.Duration;
 
 /**
  * Circuit breaker configuration using Resilience4j.
+ *
+ * <p>Configures circuit breakers for backend services with customizable
+ * thresholds for failure rates, slow calls, and state transitions.</p>
  */
 @Configuration
 public class GatewayCircuitBreakerConfig {
@@ -20,7 +23,9 @@ public class GatewayCircuitBreakerConfig {
     private static final Logger log = LoggerFactory.getLogger(GatewayCircuitBreakerConfig.class);
 
     /**
-     * Default circuit breaker configuration.
+     * Create the circuit breaker registry with default configuration.
+     *
+     * @return the circuit breaker registry
      */
     @Bean
     public CircuitBreakerRegistry circuitBreakerRegistry() {
@@ -49,7 +54,10 @@ public class GatewayCircuitBreakerConfig {
     }
 
     /**
-     * Circuit breaker for backend services.
+     * Create the backend service circuit breaker with event listeners.
+     *
+     * @param registry the circuit breaker registry
+     * @return the configured circuit breaker
      */
     @Bean
     public CircuitBreaker backendServiceCircuitBreaker(CircuitBreakerRegistry registry) {
@@ -74,7 +82,9 @@ public class GatewayCircuitBreakerConfig {
     }
 
     /**
-     * Time limiter configuration for circuit breaker.
+     * Create the time limiter configuration for circuit breaker timeouts.
+     *
+     * @return the time limiter configuration
      */
     @Bean
     public TimeLimiterConfig timeLimiterConfig() {

@@ -16,13 +16,29 @@ import java.util.List;
 
 /**
  * OpenAPI documentation configuration.
+ *
+ * <p>Configures Swagger/OpenAPI documentation for the API Gateway,
+ * including security schemes for JWT authentication.</p>
  */
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${spring.application.name}")
-    private String applicationName;
+    private final String applicationName;
 
+    /**
+     * Constructs a new OpenApiConfig with the application name.
+     *
+     * @param applicationName the application name from Spring properties
+     */
+    public OpenApiConfig(@Value("${spring.application.name}") String applicationName) {
+        this.applicationName = applicationName;
+    }
+
+    /**
+     * Create the custom OpenAPI configuration.
+     *
+     * @return the configured OpenAPI instance
+     */
     @Bean
     public OpenAPI customOpenAPI() {
         final String securitySchemeName = "bearerAuth";
@@ -43,6 +59,11 @@ public class OpenApiConfig {
                                         .description("JWT Authorization header using the Bearer scheme.")));
     }
 
+    /**
+     * Create the API info for the documentation.
+     *
+     * @return the configured Info instance
+     */
     private Info apiInfo() {
         return new Info()
                 .title(applicationName)

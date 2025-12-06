@@ -3,6 +3,7 @@ package com.gateway.ratelimit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gateway.dto.ErrorResponse;
+import com.gateway.util.CorrelationIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -14,10 +15,15 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-
 /**
  * Rate limiting filter that applies token bucket rate limiting to incoming requests.
+ *
+ * <p>This filter intercepts all incoming requests and checks if the client has
+ * exceeded their rate limit. It adds rate limit headers to all responses and
+ * returns HTTP 429 when the limit is exceeded.</p>
+ *
+ * <p>Client identification is based on IP address, supporting X-Forwarded-For
+ * and X-Real-IP headers for proxied requests.</p>
  */
 @Component
 public class RateLimitFilter implements WebFilter {
@@ -33,11 +39,24 @@ public class RateLimitFilter implements WebFilter {
     private final RateLimitService rateLimitService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Constructs a new RateLimitFilter.
+     *
+     * @param rateLimitService the rate limiting service
+     * @param objectMapper the JSON object mapper for error responses
+     */
     public RateLimitFilter(RateLimitService rateLimitService, ObjectMapper objectMapper) {
         this.rateLimitService = rateLimitService;
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Filter incoming requests and apply rate limiting.
+     *
+     * @param exchange the server web exchange
+     * @param chain the web filter chain
+     * @return Mono completing when the filter chain is done
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String clientId = getClientId(exchange);
@@ -63,7 +82,12 @@ public class RateLimitFilter implements WebFilter {
 
     /**
      * Extract client identifier from request.
-     * Uses X-Forwarded-For header if available, otherwise uses remote address.
+     *
+     * <p>Uses X-Forwarded-For header if available, otherwise X-Real-IP,
+     * falling back to remote address.</p>
+     *
+     * @param exchange the server web exchange
+     * @return the client identifier (IP address)
      */
     private String getClientId(ServerWebExchange exchange) {
         String forwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
@@ -83,14 +107,20 @@ public class RateLimitFilter implements WebFilter {
 
     /**
      * Get existing correlation ID or create a new one.
+     *
+     * @param exchange the server web exchange
+     * @return the correlation ID
      */
     private String getOrCreateCorrelationId(ServerWebExchange exchange) {
-        String correlationId = exchange.getRequest().getHeaders().getFirst(X_CORRELATION_ID);
-        return correlationId != null ? correlationId : UUID.randomUUID().toString();
+        return CorrelationIdUtils.getOrCreateCorrelationId(exchange);
     }
 
     /**
-     * Handle rate limited response.
+     * Handle rate limited response by returning HTTP 429.
+     *
+     * @param exchange the server web exchange
+     * @param correlationId the correlation ID for the request
+     * @return Mono completing when the error response is written
      */
     private Mono<Void> handleRateLimited(ServerWebExchange exchange, String correlationId) {
         exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);

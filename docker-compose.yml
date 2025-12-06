@@ -1,41 +1,39 @@
+version: '3.8'
+
 services:
-  gateway:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: api-gateway
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - JWT_SECRET=${JWT_SECRET}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
-      - DB_URL=jdbc:postgresql://db:5432/gatewaydb
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - RATE_LIMIT_RPM=${RATE_LIMIT_RPM:-60}
-      - RATE_LIMIT_RPH=${RATE_LIMIT_RPH:-1000}
+      - DB_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-gatewaydb}
+      - DB_USERNAME=${POSTGRES_USER:-gateway}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     depends_on:
-      - db
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   db:
     image: postgres:15-alpine
-    container_name: api-gateway-db
-    ports:
-      - "5432:5432"
     environment:
-      - POSTGRES_DB=gatewaydb
-      - POSTGRES_USER=${DB_USERNAME}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-gatewaydb}
+      - POSTGRES_USER=${POSTGRES_USER:-gateway}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gateway}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:

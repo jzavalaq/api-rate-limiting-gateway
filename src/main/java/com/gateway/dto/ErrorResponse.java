@@ -1,33 +1,49 @@
 package com.gateway.dto;
 
-import java.time.Instant;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Standard error response for API errors.
  *
+ * <p>Follows the API contract format: {"error": "message", "status": 400}</p>
+ *
+ * @param error Error message describing what went wrong
  * @param status HTTP status code
- * @param error Error type
- * @param message Error message
- * @param path Request path
- * @param timestamp When the error occurred
- * @param correlationId Request correlation ID
- * @param details Additional error details
  */
 public record ErrorResponse(
-    int status,
     String error,
-    String message,
-    String path,
-    Instant timestamp,
-    String correlationId,
-    List<String> details
+    int status
 ) {
-    public static ErrorResponse of(int status, String error, String message, String path, String correlationId) {
-        return new ErrorResponse(status, error, message, path, Instant.now(), correlationId, List.of());
+    /**
+     * Creates an ErrorResponse with the given status and message.
+     *
+     * @param status HTTP status code
+     * @param errorType Error type (unused but kept for backward compatibility)
+     * @param message Error message
+     * @param path Request path (unused but kept for backward compatibility)
+     * @param correlationId Request correlation ID (unused but kept for backward compatibility)
+     * @return ErrorResponse instance
+     */
+    public static ErrorResponse of(int status, String errorType, String message, String path, String correlationId) {
+        return new ErrorResponse(message, status);
     }
 
-    public static ErrorResponse of(int status, String error, String message, String path, String correlationId, List<String> details) {
-        return new ErrorResponse(status, error, message, path, Instant.now(), correlationId, details);
+    /**
+     * Creates an ErrorResponse with the given status, message, and details.
+     *
+     * @param status HTTP status code
+     * @param errorType Error type (unused but kept for backward compatibility)
+     * @param message Error message
+     * @param path Request path (unused but kept for backward compatibility)
+     * @param correlationId Request correlation ID (unused but kept for backward compatibility)
+     * @param details Additional error details (combined into message)
+     * @return ErrorResponse instance
+     */
+    public static ErrorResponse of(int status, String errorType, String message, String path, String correlationId, java.util.List<String> details) {
+        if (details != null && !details.isEmpty()) {
+            String combinedMessage = message + ": " + String.join(", ", details);
+            return new ErrorResponse(combinedMessage, status);
+        }
+        return new ErrorResponse(message, status);
     }
 }

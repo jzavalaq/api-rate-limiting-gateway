@@ -1,5 +1,6 @@
 package com.gateway.ratelimit;
 
+import io.github.bucket4j.Bucket;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -69,5 +70,43 @@ class RateLimitServiceTest {
 
         // Client 2 should still have full bucket
         assertEquals(60, rateLimitService.getRemainingTokens(client2));
+    }
+
+    @Test
+    void resolveBucket_sameClient_returnsSameBucket() {
+        String clientId = "same-client";
+        Bucket bucket1 = rateLimitService.resolveBucket(clientId);
+        Bucket bucket2 = rateLimitService.resolveBucket(clientId);
+
+        assertSame(bucket1, bucket2);
+    }
+
+    @Test
+    void resolveBucket_differentClients_returnsDifferentBuckets() {
+        String client1 = "client-a";
+        String client2 = "client-b";
+        Bucket bucket1 = rateLimitService.resolveBucket(client1);
+        Bucket bucket2 = rateLimitService.resolveBucket(client2);
+
+        assertNotSame(bucket1, bucket2);
+    }
+
+    @Test
+    void getResetTimeSeconds_returnsDefault60() {
+        String clientId = "test-client-reset";
+        assertEquals(60L, rateLimitService.getResetTimeSeconds(clientId));
+    }
+
+    @Test
+    void tryConsume_exceedsMinuteLimit_returnsFalse() {
+        String clientId = "high-volume-client";
+
+        // Exhaust the per-minute limit (60 requests)
+        for (int i = 0; i < 60; i++) {
+            assertTrue(rateLimitService.tryConsume(clientId));
+        }
+
+        // The 61st request should fail
+        assertFalse(rateLimitService.tryConsume(clientId));
     }
 }

@@ -1,18 +1,20 @@
 package com.gateway.filter;
 
+import com.gateway.util.CorrelationIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-
 /**
  * Request logging filter that adds correlation IDs to requests and logs request/response details.
+ *
+ * <p>This filter adds a unique correlation ID to each request for distributed tracing.
+ * The correlation ID is included in both request and response logs, as well as the
+ * X-Correlation-ID response header.</p>
  */
 @Component
 public class RequestLoggingFilter implements WebFilter {
@@ -22,6 +24,13 @@ public class RequestLoggingFilter implements WebFilter {
     private static final String CORRELATION_ID_KEY = "correlationId";
     private static final String START_TIME_KEY = "startTime";
 
+    /**
+     * Filter incoming requests to add correlation IDs and log request/response details.
+     *
+     * @param exchange the server web exchange
+     * @param chain the web filter chain
+     * @return Mono completing when the filter chain is done
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         long startTime = System.currentTimeMillis();
@@ -60,15 +69,23 @@ public class RequestLoggingFilter implements WebFilter {
                 });
     }
 
+    /**
+     * Get or create a correlation ID from the exchange.
+     *
+     * @param exchange the server web exchange
+     * @return the correlation ID
+     */
     private String getOrCreateCorrelationId(ServerWebExchange exchange) {
-        String correlationId = exchange.getRequest().getHeaders().getFirst(X_CORRELATION_ID);
-        return (correlationId != null && !correlationId.isEmpty())
-                ? correlationId
-                : UUID.randomUUID().toString();
+        return CorrelationIdUtils.getOrCreateCorrelationId(exchange);
     }
 
     /**
      * Extract client IP from request headers or remote address.
+     *
+     * <p>Supports X-Forwarded-For and X-Real-IP headers for proxied requests.</p>
+     *
+     * @param exchange the server web exchange
+     * @return the client IP address
      */
     private String getClientIp(ServerWebExchange exchange) {
         String forwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
