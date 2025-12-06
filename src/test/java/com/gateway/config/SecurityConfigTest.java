@@ -97,13 +97,16 @@ class SecurityConfigTest {
     }
 
     @Test
-    void corsConfigurationSource_allowsAllHeaders() {
+    void corsConfigurationSource_allowsSpecificHeaders() {
         // When
         CorsConfigurationSource source = securityConfig.corsConfigurationSource();
         var exchange = MockServerWebExchange.builder(MockServerHttpRequest.get("/test").build()).build();
         var corsConfig = source.getCorsConfiguration(exchange);
 
-        // Then
-        assertEquals("*", corsConfig.getAllowedHeaders().get(0));
+        // Then - Security fix: use explicit headers instead of wildcard
+        assertNotNull(corsConfig.getAllowedHeaders());
+        assertTrue(corsConfig.getAllowedHeaders().contains("Authorization"));
+        assertTrue(corsConfig.getAllowedHeaders().contains("Content-Type"));
+        assertTrue(corsConfig.getAllowedHeaders().contains("X-Correlation-ID"));
     }
 }

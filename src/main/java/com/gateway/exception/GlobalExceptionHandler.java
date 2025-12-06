@@ -1,5 +1,6 @@
 package com.gateway.exception;
 
+import com.gateway.config.GatewayConstants;
 import com.gateway.dto.ErrorResponse;
 import com.gateway.util.CorrelationIdUtils;
 import org.slf4j.Logger;
@@ -78,13 +79,13 @@ public class GlobalExceptionHandler {
 
         log.error("Unhandled exception at {}: {}", path, ex.getMessage(), ex);
 
+        // Do not expose internal exception messages to clients - security best practice
         ErrorResponse errorResponse = ErrorResponse.of(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
                 "An unexpected error occurred. Please try again later.",
                 path,
-                correlationId,
-                List.of(ex.getMessage())
+                correlationId
         );
 
         return Mono.just(ResponseEntity
@@ -149,7 +150,7 @@ public class GlobalExceptionHandler {
 
         return Mono.just(ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
-                .header("Retry-After", "60")
+                .header(GatewayConstants.RETRY_AFTER, String.valueOf(GatewayConstants.DEFAULT_RETRY_AFTER_SECONDS))
                 .body(errorResponse));
     }
 
@@ -180,7 +181,7 @@ public class GlobalExceptionHandler {
 
         return Mono.just(ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
-                .header("Retry-After", "60")
+                .header(GatewayConstants.RETRY_AFTER, String.valueOf(GatewayConstants.DEFAULT_RETRY_AFTER_SECONDS))
                 .body(errorResponse));
     }
 
