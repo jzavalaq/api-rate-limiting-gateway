@@ -10,7 +10,7 @@ spring:
 logging:
   level:
     root: WARN
-    com.gateway: INFO
+    com.gateway.ratelimit: INFO
 
 # Production rate limits
 rate:
