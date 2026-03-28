@@ -10,7 +10,7 @@ spring:
 logging:
   level:
     root: INFO
-    com.gateway: DEBUG
+    com.gateway.ratelimit: DEBUG
     org.springframework.security: DEBUG
     org.springframework.cloud.gateway: DEBUG
 
